@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(NNet))]
 public class CarController : MonoBehaviour
 {
     private Vector3 startPosition, startRotation;
+    private NNet network;
 
     [Range(-1f,1f)]
     public float a,t;
@@ -17,6 +19,10 @@ public class CarController : MonoBehaviour
     public float avgSpeedMultiplier = 0.2f;
     public float sensorMultiplier = 0.1f;
 
+    [Header("Network Options")]
+    public int LAYERS = 1;
+    public int NEURONS = 10;
+
     private Vector3 lastPosition;
     private float totalDistanceTravelled;
     private float avgSpeed;
@@ -26,9 +32,17 @@ public class CarController : MonoBehaviour
     private void Awake() {
         startPosition = transform.position;
         startRotation = transform.eulerAngles;
+        network = GetComponent<NNet>();
+
+        //TEST CODE
+        network.Initialise(LAYERS, NEURONS);
     }
 
     public void Reset() {
+
+        //TEST CODE
+        network.Initialise(LAYERS, NEURONS);
+
         timeSinceStart = 0f;
         totalDistanceTravelled = 0f;
         avgSpeed = 0f;
@@ -47,7 +61,9 @@ public class CarController : MonoBehaviour
         InputSensors();
         lastPosition = transform.position;
 
-        //Neural network code here
+
+        (a, t) = network.RunNetwork(aSensor, bSensor, cSensor);
+
 
         MoveCar(a,t);
 
@@ -91,21 +107,21 @@ public class CarController : MonoBehaviour
 
         if (Physics.Raycast(r, out hit)) {
             aSensor = hit.distance/20;
-            
+            Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = b;
 
         if (Physics.Raycast(r, out hit)) {
             bSensor = hit.distance/20;
-            
+            Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = c;
 
         if (Physics.Raycast(r, out hit)) {
             cSensor = hit.distance/20;
-           
+            Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
     }
