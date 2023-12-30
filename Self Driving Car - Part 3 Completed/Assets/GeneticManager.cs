@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,7 +7,12 @@ using MathNet.Numerics.LinearAlgebra;
 public class GeneticManager : MonoBehaviour
 {
     [Header("References")]
-    public CarController controller;
+    public GameObject spawnPoint;
+    private GameObject car;
+
+    [Header("Network Options")]
+    public int LAYERS = 1;
+    public int NEURONS = 10;
 
     [Header("Controls")]
     public int initialPopulation = 85;
@@ -23,11 +28,18 @@ public class GeneticManager : MonoBehaviour
 
     private int naturallySelected;
 
-    private NNet[] population;
+    public NNet[] population;
+
+    private List<GameObject> genomes = new List<GameObject>();
+    private int collisedGenomes = 0;
 
     [Header("Public View")]
     public int currentGeneration;
-    public int currentGenome = 0;
+
+    private void Awake()
+    {
+        car = Resources.Load<GameObject>("jeep");
+    }
 
     private void Start()
     {
@@ -38,12 +50,18 @@ public class GeneticManager : MonoBehaviour
     {
         population = new NNet[initialPopulation];
         FillPopulationWithRandomValues(population, 0);
-        ResetToCurrentGenome();
+        InstantiateCars();
     }
 
-    private void ResetToCurrentGenome()
+    private void InstantiateCars() 
     {
-        controller.ResetWithNetwork(population[currentGenome]);
+        for (int i = 0; i < initialPopulation; i++)
+        {
+            GameObject genome = Instantiate(car, spawnPoint.transform.position, spawnPoint.transform.rotation);
+            CarController genomeController = genome.GetComponent<CarController>();
+            genomeController.AssignNetwork(population[i], i);
+            genomes.Add(genome);
+        }
     }
 
     private void FillPopulationWithRandomValues (NNet[] newPopulation, int startingIndex)
@@ -51,24 +69,22 @@ public class GeneticManager : MonoBehaviour
         while (startingIndex < initialPopulation)
         {
             newPopulation[startingIndex] = new NNet();
-            newPopulation[startingIndex].Initialise(controller.LAYERS, controller.NEURONS);
+            newPopulation[startingIndex].Initialise(LAYERS, NEURONS);
             startingIndex++;
         }
     }
 
-    public void Death (float fitness, NNet network)
+    public void Death (float fitness, NNet network, int id)
     {
-
-        if (currentGenome < population.Length -1)
-        {
-
-            population[currentGenome].fitness = fitness;
-            currentGenome++;
-            ResetToCurrentGenome();
-
-        }
-        else
-        {
+        
+        population[id].fitness = fitness;
+        collisedGenomes++;
+        if (collisedGenomes == initialPopulation) 
+        { 
+            foreach(GameObject genome in genomes)
+            {
+                Destroy(genome);
+            }
             RePopulate();
         }
 
@@ -78,6 +94,7 @@ public class GeneticManager : MonoBehaviour
     private void RePopulate()
     {
         genePool.Clear();
+        genomes.Clear();
         currentGeneration++;
         naturallySelected = 0;
         SortPopulation();
@@ -91,9 +108,8 @@ public class GeneticManager : MonoBehaviour
 
         population = newPopulation;
 
-        currentGenome = 0;
-
-        ResetToCurrentGenome();
+        collisedGenomes = 0;
+        InstantiateCars();
 
     }
 
@@ -158,8 +174,8 @@ public class GeneticManager : MonoBehaviour
             NNet Child1 = new NNet();
             NNet Child2 = new NNet();
 
-            Child1.Initialise(controller.LAYERS, controller.NEURONS);
-            Child2.Initialise(controller.LAYERS, controller.NEURONS);
+            Child1.Initialise(LAYERS, NEURONS);
+            Child2.Initialise(LAYERS, NEURONS);
 
             Child1.fitness = 0;
             Child2.fitness = 0;
@@ -214,7 +230,7 @@ public class GeneticManager : MonoBehaviour
 
         for (int i = 0; i < bestAgentSelection; i++)
         {
-            newPopulation[naturallySelected] = population[i].InitialiseCopy(controller.LAYERS, controller.NEURONS);
+            newPopulation[naturallySelected] = population[i].InitialiseCopy(LAYERS, NEURONS);
             newPopulation[naturallySelected].fitness = 0;
             naturallySelected++;
             

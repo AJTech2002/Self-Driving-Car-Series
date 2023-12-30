@@ -7,6 +7,7 @@ public class CarController : MonoBehaviour
 {
     private Vector3 startPosition, startRotation;
     private NNet network;
+    public int id;
 
     [Range(-1f,1f)]
     public float a,t;
@@ -19,45 +20,29 @@ public class CarController : MonoBehaviour
     public float avgSpeedMultiplier = 0.2f;
     public float sensorMultiplier = 0.1f;
 
-    [Header("Network Options")]
-    public int LAYERS = 1;
-    public int NEURONS = 10;
-
     private Vector3 lastPosition;
     private float totalDistanceTravelled;
     private float avgSpeed;
 
-    private float aSensor,bSensor,cSensor;
+    public float aSensor,bSensor,cSensor;
 
     private void Awake() {
         startPosition = transform.position;
         startRotation = transform.eulerAngles;
         network = GetComponent<NNet>();
-
-        
     }
 
-    public void ResetWithNetwork (NNet net)
+    public void AssignNetwork(NNet net, int net_id)
     {
         network = net;
-        Reset();
-    }
-
-    
-
-    public void Reset() {
-
-        timeSinceStart = 0f;
-        totalDistanceTravelled = 0f;
-        avgSpeed = 0f;
-        lastPosition = startPosition;
-        overallFitness = 0f;
-        transform.position = startPosition;
-        transform.eulerAngles = startRotation;
+        id = net_id;
     }
 
     private void OnCollisionEnter (Collision collision) {
-        Death();
+        if(collision.gameObject.tag == "Wall")
+        {
+            Death();
+        }
     }
 
     private void FixedUpdate() {
@@ -83,7 +68,8 @@ public class CarController : MonoBehaviour
 
     private void Death ()
     {
-        GameObject.FindObjectOfType<GeneticManager>().Death(overallFitness, network);
+        GameObject.FindObjectOfType<GeneticManager>().Death(overallFitness, network, id);
+        Destroy(this);
     }
 
     private void CalculateFitness() {
@@ -112,21 +98,24 @@ public class CarController : MonoBehaviour
         Ray r = new Ray(transform.position,a);
         RaycastHit hit;
 
-        if (Physics.Raycast(r, out hit)) {
+        int layerMask = 3;
+        layerMask = ~~layerMask;
+
+        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
             aSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = b;
 
-        if (Physics.Raycast(r, out hit)) {
+        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
             bSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = c;
 
-        if (Physics.Raycast(r, out hit)) {
+        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
             cSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
