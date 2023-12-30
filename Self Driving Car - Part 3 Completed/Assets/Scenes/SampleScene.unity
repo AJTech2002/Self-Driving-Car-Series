@@ -510,17 +510,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnPoint: {fileID: 1649993010}
-  LAYERS: 1
-  NEURONS: 10
-  initialPopulation: 10
-  mutationRate: 0.1
-  bestAgentSelection: 3
-  worstAgentSelection: 1
-  numberToCrossover: 3
+  LAYERS: 2
+  NEURONS: 20
+  initialPopulation: 85
+  mutationRate: 0.055
+  bestAgentSelection: 8
+  worstAgentSelection: 3
+  numberToCrossover: 39
   population: []
   currentGeneration: 0
-  genomes: []
-  currentGenome: 0
 --- !u!4 &1502226235
 Transform:
   m_ObjectHideFlags: 0
