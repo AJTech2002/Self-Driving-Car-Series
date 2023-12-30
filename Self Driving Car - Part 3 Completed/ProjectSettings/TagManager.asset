@@ -3,12 +3,14 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Wall
+  - Jeep
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Jeep
   - Water
   - UI
   - 
