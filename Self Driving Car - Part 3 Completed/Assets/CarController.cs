@@ -6,9 +6,9 @@ using UnityEngine;
 public class CarController : MonoBehaviour
 {
     private Vector3 startPosition, startRotation;
-    public NNet network;
+    private NNet network;
     private GeneticManager manager;
-    public bool canMove = false;
+    private bool canMove = false;
 
     [Range(-1f,1f)]
     public float a,t;
@@ -31,7 +31,6 @@ public class CarController : MonoBehaviour
         manager = GameObject.FindObjectOfType<GeneticManager>();
         startPosition = transform.position;
         startRotation = transform.eulerAngles;
-        network = GetComponent<NNet>();
     }
 
     public void AssignNetwork(NNet net)
@@ -144,6 +143,16 @@ public class CarController : MonoBehaviour
         transform.position += inp;
 
         transform.eulerAngles += new Vector3(0, (h*90)*0.02f,0);
+    }
+
+    public void AllowMoviment()
+    {
+        canMove = true;
+    }
+
+    public NNet GetNetwork() 
+    {
+        return network;
     }
 
 }

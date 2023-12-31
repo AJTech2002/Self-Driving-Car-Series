@@ -295,7 +295,7 @@ public class GeneticManager : MonoBehaviour
         foreach(GameObject car in population)
         {
             CarController controller = GetController(car);
-            controller.canMove = true;
+            controller.AllowMoviment();
         }
     }
 
@@ -318,7 +318,7 @@ public class GeneticManager : MonoBehaviour
     private NNet GetNetwork(GameObject car)
     {
         CarController controller = GetController(car);
-        NNet network = controller.network;
+        NNet network = controller.GetNetwork();
         return network;
     }
 
