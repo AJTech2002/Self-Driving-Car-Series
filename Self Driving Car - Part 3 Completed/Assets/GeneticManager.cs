@@ -1,11 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 using MathNet.Numerics.LinearAlgebra;
-using TMPro;
 using System.Linq;
 using System;
+using System.Reflection;
 using Random = UnityEngine.Random;
 
 public class GeneticManager : MonoBehaviour
@@ -44,6 +43,12 @@ public class GeneticManager : MonoBehaviour
         jeep = Resources.Load<GameObject>("jeep");
     }
 
+    private void LateUpdate()
+    {
+        UpdateRanking();
+        UpdateCameraTarget();
+    }
+
     private void Start()
     {
         CreatePopulation();
@@ -76,13 +81,54 @@ public class GeneticManager : MonoBehaviour
 
     }
 
+    public void UpdateRanking()
+    {
+        SortPopulation();
+    }
+
+    private void UpdateCameraTarget()
+    {
+        GameObject bestCarAlive = GetBestCarAlive();
+        CarController controller = GetController(bestCarAlive);
+        TargetCamera camera = GetCamera();
+        if(controller.overallFitness > 1){
+            foreach (Transform child in bestCarAlive.transform)
+            {
+                if (child.tag == "CameraTarget")
+                {
+                    GameObject bestTarget = child.gameObject;
+                    camera.UpdateTarget(bestTarget);
+                }
+            }
+        }
+        else {
+            camera.Reset();
+        }
+    }
+
+    private GameObject GetBestCarAlive()
+    {
+        int position = 0;
+        while (position < population.Length)
+        {
+            CarController controller = GetController(population[position]);
+            if(controller.IsMoving())
+            {
+                return population[position];
+            }
+            position++;
+        }
+        return population[0];
+        
+    }
+
     
     private void RePopulate()
     {
         genePool.Clear();
         currentGeneration++;
         naturallySelected = 0;
-        SortPopulation();
+        UpdateRanking();
 
         GameObject[] newPopulation = PickBestPopulation();
         ResetBest(newPopulation);
@@ -95,6 +141,7 @@ public class GeneticManager : MonoBehaviour
 
         population = newPopulation;
         collisedCars = 0;
+        ClearLog();
         StartPopulation();
     }
 
@@ -274,20 +321,11 @@ public class GeneticManager : MonoBehaviour
 
     private void SortPopulation()
     {
-        for (int i = 0; i < population.Length; i++)
+        population = population.OrderByDescending(car => 
         {
-            for (int j = i; j < population.Length; j++)
-            {
-                NNet network = GetNetwork(population[i]);
-                NNet nestedNetwork = GetNetwork(population[j]);;
-                if (network.fitness < nestedNetwork.fitness)
-                {
-                    GameObject temp = population[i];
-                    population[i] = population[j];
-                    population[j] = temp;
-                }
-            }
-        }
+            CarController controller = GetController(car);
+            return controller.overallFitness;
+        }).ToArray();
 
     }
 
@@ -326,6 +364,21 @@ public class GeneticManager : MonoBehaviour
     {
         CarController controller = car.GetComponent<CarController>();
         return controller;
+    }
+
+    private TargetCamera GetCamera()
+    {
+        Camera camera =  GameObject.FindObjectOfType<Camera>();
+        TargetCamera cameraController = camera.GetComponent<TargetCamera>();
+        return cameraController;
+    }
+
+    public void ClearLog()
+    {
+        var assembly = Assembly.GetAssembly(typeof(UnityEditor.Editor));
+        var type = assembly.GetType("UnityEditor.LogEntries");
+        var method = type.GetMethod("Clear");
+        method.Invoke(new object(), null);
     }
 
 }

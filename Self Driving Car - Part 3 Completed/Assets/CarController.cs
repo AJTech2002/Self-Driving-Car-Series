@@ -91,7 +91,7 @@ public class CarController : MonoBehaviour
         totalDistanceTravelled += Vector3.Distance(transform.position,lastPosition);
         avgSpeed = totalDistanceTravelled/timeSinceStart;
 
-       overallFitness = (totalDistanceTravelled*distanceMultipler)+(avgSpeed*avgSpeedMultiplier)+(((aSensor+bSensor+cSensor)/3)*sensorMultiplier);
+        overallFitness = (totalDistanceTravelled*distanceMultipler)+(avgSpeed*avgSpeedMultiplier)+(((aSensor+bSensor+cSensor)/3)*sensorMultiplier);
 
         if (timeSinceStart > 20 && overallFitness < 40) {
             Death();
@@ -148,6 +148,11 @@ public class CarController : MonoBehaviour
     public void AllowMoviment()
     {
         canMove = true;
+    }
+
+    public bool IsMoving()
+    {
+        return canMove;
     }
 
     public NNet GetNetwork() 

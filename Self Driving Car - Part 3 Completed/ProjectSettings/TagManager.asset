@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Wall
   - Jeep
+  - CameraTarget
   layers:
   - Default
   - TransparentFX

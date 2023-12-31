@@ -307,6 +307,7 @@ GameObject:
   - component: {fileID: 1264048750}
   - component: {fileID: 1264048749}
   - component: {fileID: 1264048748}
+  - component: {fileID: 1264048751}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -355,7 +356,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 100
-  field of view: 75.4
+  field of view: 70
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -382,12 +383,24 @@ Transform:
   m_GameObject: {fileID: 1264048747}
   serializedVersion: 2
   m_LocalRotation: {x: 0.6839824, y: -0, z: -0, w: 0.72949857}
-  m_LocalPosition: {x: -23.3, y: 84, z: 20.2}
+  m_LocalPosition: {x: -46.5, y: 83.7, z: 16.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 86.311, y: 0, z: 0}
+--- !u!114 &1264048751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1264048747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f316271f9acb32c499df3a2eff6e674c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1367992586 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -516098083770646512, guid: 315102d4aa63f4d4695f377e8fb7ca09,
@@ -519,6 +532,7 @@ MonoBehaviour:
   numberToCrossover: 39
   population: []
   currentGeneration: 0
+  collisedCars: 0
 --- !u!4 &1502226235
 Transform:
   m_ObjectHideFlags: 0
@@ -571,6 +585,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 1502226235}
   - {fileID: 170076735}
-  - {fileID: 1264048750}
   - {fileID: 1649993011}
+  - {fileID: 1264048750}
   - {fileID: 1030127401}
