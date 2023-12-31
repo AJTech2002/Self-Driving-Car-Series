@@ -6,8 +6,9 @@ using UnityEngine;
 public class CarController : MonoBehaviour
 {
     private Vector3 startPosition, startRotation;
-    private NNet network;
-    public int id;
+    public NNet network;
+    private GeneticManager manager;
+    public bool canMove = false;
 
     [Range(-1f,1f)]
     public float a,t;
@@ -27,15 +28,15 @@ public class CarController : MonoBehaviour
     public float aSensor,bSensor,cSensor;
 
     private void Awake() {
+        manager = GameObject.FindObjectOfType<GeneticManager>();
         startPosition = transform.position;
         startRotation = transform.eulerAngles;
         network = GetComponent<NNet>();
     }
 
-    public void AssignNetwork(NNet net, int net_id)
+    public void AssignNetwork(NNet net)
     {
         network = net;
-        id = net_id;
     }
 
     private void OnCollisionEnter (Collision collision) {
@@ -46,19 +47,21 @@ public class CarController : MonoBehaviour
     }
 
     private void FixedUpdate() {
-
-        InputSensors();
-        lastPosition = transform.position;
-
-
-        (a, t) = network.RunNetwork(aSensor, bSensor, cSensor);
+        if(canMove){
+            
+            InputSensors();
+            lastPosition = transform.position;
 
 
-        MoveCar(a,t);
+            (a, t) = network.RunNetwork(aSensor, bSensor, cSensor);
 
-        timeSinceStart += Time.deltaTime;
 
-        CalculateFitness();
+            MoveCar(a,t);
+
+            timeSinceStart += Time.deltaTime;
+
+            CalculateFitness();
+        }
 
         //a = 0;
         //t = 0;
@@ -66,10 +69,22 @@ public class CarController : MonoBehaviour
 
     }
 
+    public void Reset() 
+    {
+        timeSinceStart = 0f;
+        totalDistanceTravelled = 0f;
+        avgSpeed = 0f;
+        lastPosition = startPosition;
+        overallFitness = 0f;
+        transform.position = startPosition;
+        transform.eulerAngles = startRotation;
+    }
+
     private void Death ()
     {
-        GameObject.FindObjectOfType<GeneticManager>().Death(overallFitness, network, id);
-        Destroy(this);
+        network.fitness = overallFitness;
+        canMove = false;
+        manager.Death();
     }
 
     private void CalculateFitness() {

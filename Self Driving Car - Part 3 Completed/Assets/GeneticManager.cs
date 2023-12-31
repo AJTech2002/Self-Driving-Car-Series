@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using MathNet.Numerics.LinearAlgebra;
+using TMPro;
+using System.Linq;
+using System;
+using Random = UnityEngine.Random;
 
 public class GeneticManager : MonoBehaviour
 {
     [Header("References")]
     public GameObject spawnPoint;
-    private GameObject car;
+    private GameObject jeep;
 
     [Header("Network Options")]
     public int LAYERS = 1;
@@ -28,17 +32,16 @@ public class GeneticManager : MonoBehaviour
 
     private int naturallySelected;
 
-    public NNet[] population;
 
-    private List<GameObject> genomes = new List<GameObject>();
-    private int collisedGenomes = 0;
 
     [Header("Public View")]
+    public GameObject[] population;
     public int currentGeneration;
+    public int collisedCars = 0;
 
     private void Awake()
     {
-        car = Resources.Load<GameObject>("jeep");
+        jeep = Resources.Load<GameObject>("jeep");
     }
 
     private void Start()
@@ -48,43 +51,26 @@ public class GeneticManager : MonoBehaviour
 
     private void CreatePopulation()
     {
-        population = new NNet[initialPopulation];
+        population = new GameObject[initialPopulation];
         FillPopulationWithRandomValues(population, 0);
-        InstantiateCars();
+        StartPopulation();
     }
 
-    private void InstantiateCars() 
-    {
-        for (int i = 0; i < initialPopulation; i++)
-        {
-            GameObject genome = Instantiate(car, spawnPoint.transform.position, spawnPoint.transform.rotation);
-            CarController genomeController = genome.GetComponent<CarController>();
-            genomeController.AssignNetwork(population[i], i);
-            genomes.Add(genome);
-        }
-    }
-
-    private void FillPopulationWithRandomValues (NNet[] newPopulation, int startingIndex)
+    private void FillPopulationWithRandomValues (GameObject[] cars, int startingIndex)
     {
         while (startingIndex < initialPopulation)
         {
-            newPopulation[startingIndex] = new NNet();
-            newPopulation[startingIndex].Initialise(LAYERS, NEURONS);
+            NNet network = InitialiaseNetwork();
+            cars[startingIndex] = InstantiateCar(network);
             startingIndex++;
         }
     }
 
-    public void Death (float fitness, NNet network, int id)
+    public void Death ()
     {
-        
-        population[id].fitness = fitness;
-        collisedGenomes++;
-        if (collisedGenomes == initialPopulation) 
+        collisedCars++;
+        if (collisedCars == initialPopulation) 
         { 
-            foreach(GameObject genome in genomes)
-            {
-                Destroy(genome);
-            }
             RePopulate();
         }
 
@@ -94,12 +80,13 @@ public class GeneticManager : MonoBehaviour
     private void RePopulate()
     {
         genePool.Clear();
-        genomes.Clear();
         currentGeneration++;
         naturallySelected = 0;
         SortPopulation();
 
-        NNet[] newPopulation = PickBestPopulation();
+        GameObject[] newPopulation = PickBestPopulation();
+        ResetBest(newPopulation);
+        DeleteWorses(newPopulation);
 
         Crossover(newPopulation);
         Mutate(newPopulation);
@@ -107,24 +94,84 @@ public class GeneticManager : MonoBehaviour
         FillPopulationWithRandomValues(newPopulation, naturallySelected);
 
         population = newPopulation;
+        collisedCars = 0;
+        StartPopulation();
+    }
 
-        collisedGenomes = 0;
-        InstantiateCars();
+    private GameObject[] PickBestPopulation()
+    {
+
+        GameObject[] newPopulation = new GameObject[initialPopulation];
+
+        for (int i = 0; i < bestAgentSelection; i++)
+        {
+            newPopulation[naturallySelected] = population[i];
+            NNet actualNetwork = GetNetwork(population[i]);
+            NNet newNetwork = GetNetwork(newPopulation[naturallySelected]);
+            newNetwork.fitness = 0;
+            naturallySelected++;
+
+            int f = Mathf.RoundToInt(actualNetwork.fitness * 10);
+
+            for (int c = 0; c < f; c++)
+            {
+                genePool.Add(i);
+            }
+
+        }
+
+        for (int i = 0; i < worstAgentSelection; i++)
+        {
+            int last = population.Length - 1;
+            last -= i;
+
+            NNet worseNetwork = GetNetwork(population[last]);
+
+            int f = Mathf.RoundToInt(worseNetwork.fitness * 10);
+
+            for (int c = 0; c < f; c++)
+            {
+                genePool.Add(last);
+            }
+
+        }
+
+        return newPopulation;
 
     }
 
-    private void Mutate (NNet[] newPopulation)
+    private void ResetBest(GameObject[] newPopulation)
+    {
+        for(int i = 0; i < bestAgentSelection; i++)
+        {
+            GameObject car = newPopulation[i];
+            CarController controller = GetController(car);
+            controller.Reset();
+        }
+    }
+
+    private void DeleteWorses(GameObject[] newPopulation)
+    {
+        GameObject[] carsToRemove = population.Except(newPopulation).ToArray();
+        foreach(GameObject car in carsToRemove)
+        {
+            Destroy(car);
+        }
+    }
+
+    private void Mutate (GameObject[] newPopulation)
     {
 
         for (int i = 0; i < naturallySelected; i++)
         {
-
-            for (int c = 0; c < newPopulation[i].weights.Count; c++)
+            
+            NNet network = GetNetwork(newPopulation[i]);
+            for (int c = 0; c < network.weights.Count; c++)
             {
 
                 if (Random.Range(0.0f, 1.0f) < mutationRate)
                 {
-                    newPopulation[i].weights[c] = MutateMatrix(newPopulation[i].weights[c]);
+                    network.weights[c] = MutateMatrix(network.weights[c]);
                 }
 
             }
@@ -152,7 +199,7 @@ public class GeneticManager : MonoBehaviour
 
     }
 
-    private void Crossover (NNet[] newPopulation)
+    private void Crossover (GameObject[] newPopulation)
     {
         for (int i = 0; i < numberToCrossover; i+=2)
         {
@@ -180,19 +227,21 @@ public class GeneticManager : MonoBehaviour
             Child1.fitness = 0;
             Child2.fitness = 0;
 
+            NNet networkA = GetNetwork(population[AIndex]);
+            NNet networkB = GetNetwork(population[BIndex]);
 
             for (int w = 0; w < Child1.weights.Count; w++)
             {
 
                 if (Random.Range(0.0f, 1.0f) < 0.5f)
                 {
-                    Child1.weights[w] = population[AIndex].weights[w];
-                    Child2.weights[w] = population[BIndex].weights[w];
+                    Child1.weights[w] = networkA.weights[w];
+                    Child2.weights[w] = networkB.weights[w];
                 }
                 else
                 {
-                    Child2.weights[w] = population[AIndex].weights[w];
-                    Child1.weights[w] = population[BIndex].weights[w];
+                    Child2.weights[w] = networkA.weights[w];
+                    Child1.weights[w] = networkB.weights[w];
                 }
 
             }
@@ -203,62 +252,24 @@ public class GeneticManager : MonoBehaviour
 
                 if (Random.Range(0.0f, 1.0f) < 0.5f)
                 {
-                    Child1.biases[w] = population[AIndex].biases[w];
-                    Child2.biases[w] = population[BIndex].biases[w];
+                    Child1.biases[w] = networkA.biases[w];
+                    Child2.biases[w] = networkB.biases[w];
                 }
                 else
                 {
-                    Child2.biases[w] = population[AIndex].biases[w];
-                    Child1.biases[w] = population[BIndex].biases[w];
+                    Child2.biases[w] = networkA.biases[w];
+                    Child1.biases[w] = networkB.biases[w];
                 }
 
             }
 
-            newPopulation[naturallySelected] = Child1;
+            newPopulation[naturallySelected] = InstantiateCar(Child1);
             naturallySelected++;
 
-            newPopulation[naturallySelected] = Child2;
+            newPopulation[naturallySelected] = InstantiateCar(Child2);
             naturallySelected++;
 
         }
-    }
-
-    private NNet[] PickBestPopulation()
-    {
-
-        NNet[] newPopulation = new NNet[initialPopulation];
-
-        for (int i = 0; i < bestAgentSelection; i++)
-        {
-            newPopulation[naturallySelected] = population[i].InitialiseCopy(LAYERS, NEURONS);
-            newPopulation[naturallySelected].fitness = 0;
-            naturallySelected++;
-            
-            int f = Mathf.RoundToInt(population[i].fitness * 10);
-
-            for (int c = 0; c < f; c++)
-            {
-                genePool.Add(i);
-            }
-
-        }
-
-        for (int i = 0; i < worstAgentSelection; i++)
-        {
-            int last = population.Length - 1;
-            last -= i;
-
-            int f = Mathf.RoundToInt(population[last].fitness * 10);
-
-            for (int c = 0; c < f; c++)
-            {
-                genePool.Add(last);
-            }
-
-        }
-
-        return newPopulation;
-
     }
 
     private void SortPopulation()
@@ -267,9 +278,11 @@ public class GeneticManager : MonoBehaviour
         {
             for (int j = i; j < population.Length; j++)
             {
-                if (population[i].fitness < population[j].fitness)
+                NNet network = GetNetwork(population[i]);
+                NNet nestedNetwork = GetNetwork(population[j]);;
+                if (network.fitness < nestedNetwork.fitness)
                 {
-                    NNet temp = population[i];
+                    GameObject temp = population[i];
                     population[i] = population[j];
                     population[j] = temp;
                 }
@@ -277,4 +290,42 @@ public class GeneticManager : MonoBehaviour
         }
 
     }
+
+    private void StartPopulation(){
+        foreach(GameObject car in population)
+        {
+            CarController controller = GetController(car);
+            controller.canMove = true;
+        }
+    }
+
+    
+    private NNet InitialiaseNetwork()
+    {
+        NNet network = new NNet();
+        network.Initialise(LAYERS, NEURONS);
+        return network;
+    }
+
+    private GameObject InstantiateCar(NNet network)
+    {
+        GameObject car = Instantiate(jeep, spawnPoint.transform.position, spawnPoint.transform.rotation);
+        CarController controller = GetController(car);
+        controller.AssignNetwork(network);
+        return car;
+    }
+
+    private NNet GetNetwork(GameObject car)
+    {
+        CarController controller = GetController(car);
+        NNet network = controller.network;
+        return network;
+    }
+
+    private CarController GetController(GameObject car)
+    {
+        CarController controller = car.GetComponent<CarController>();
+        return controller;
+    }
+
 }
