@@ -224,11 +224,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   a: 0
   t: 0
-  timeSinceStart: 0.03
+  gas: 50
+  laps: 0
   overallFitness: 0
-  distanceMultipler: 1.4
-  avgSpeedMultiplier: 0.2
-  sensorMultiplier: 0.1
+  distanceMultipler: 0.2
+  avgSpeedMultiplier: 2.4
+  sensorMultiplier: 1.2
+  lapsMultiplier: 70
+  lastPosition: {x: 0, y: 0, z: 0}
   aSensor: 0
   bSensor: 0
   cSensor: 0

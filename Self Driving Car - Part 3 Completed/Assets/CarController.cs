@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,15 +14,21 @@ public class CarController : MonoBehaviour
     [Range(-1f,1f)]
     public float a,t;
 
-    public float timeSinceStart = 0f;
+    private float timeSinceStart = 0f;
+
+    
+    [Header("Status")]
+    public float gas = 50f;
+    public int laps = 0;
 
     [Header("Fitness")]
     public float overallFitness;
     public float distanceMultipler = 1.4f;
-    public float avgSpeedMultiplier = 0.2f;
+    public float avgSpeedMultiplier = 2f;
     public float sensorMultiplier = 0.1f;
+    public float lapsMultiplier = 30f;
 
-    private Vector3 lastPosition;
+    public Vector3 lastPosition;
     private float totalDistanceTravelled;
     private float avgSpeed;
 
@@ -44,7 +51,6 @@ public class CarController : MonoBehaviour
             Death();
         }
     }
-
     private void FixedUpdate() {
         if(canMove){
             
@@ -62,10 +68,6 @@ public class CarController : MonoBehaviour
             CalculateFitness();
         }
 
-        //a = 0;
-        //t = 0;
-
-
     }
 
     public void Reset() 
@@ -73,14 +75,17 @@ public class CarController : MonoBehaviour
         timeSinceStart = 0f;
         totalDistanceTravelled = 0f;
         avgSpeed = 0f;
-        lastPosition = startPosition;
         overallFitness = 0f;
+        gas = 50f;
+        laps = 0;
+        lastPosition = startPosition;
         transform.position = startPosition;
         transform.eulerAngles = startRotation;
     }
 
     private void Death ()
     {
+        overallFitness += laps*lapsMultiplier;
         network.fitness = overallFitness;
         canMove = false;
         manager.Death();
@@ -97,7 +102,7 @@ public class CarController : MonoBehaviour
             Death();
         }
 
-        if (overallFitness >= 1000) {
+        if (gas <= 0) {
             Death();
         }
 
@@ -112,24 +117,26 @@ public class CarController : MonoBehaviour
         Ray r = new Ray(transform.position,a);
         RaycastHit hit;
 
-        int layerMask = 3;
-        layerMask = ~~layerMask;
+        int LAYER_MASK = ~(1 << 3);
+        LAYER_MASK &= ~(1 << 6);
 
-        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
+        float TOTAL_VIEW = Mathf.Infinity;
+
+        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
             aSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = b;
 
-        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
+        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
             bSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
         r.direction = c;
 
-        if (Physics.Raycast(r, out hit, Mathf.Infinity, layerMask)) {
+        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
             cSensor = hit.distance/20;
             Debug.DrawLine(r.origin, hit.point, Color.red);
         }
@@ -143,6 +150,14 @@ public class CarController : MonoBehaviour
         transform.position += inp;
 
         transform.eulerAngles += new Vector3(0, (h*90)*0.02f,0);
+        ConsumeGas(v);
+    }
+
+    private void ConsumeGas(float acceleration)
+    {
+        float CONSUMPTION = 0.000416f;
+        float ACCELERATION_CONSUMPTION = 0.02f;
+        gas -= CONSUMPTION+(acceleration*ACCELERATION_CONSUMPTION);
     }
 
     public void AllowMoviment()
