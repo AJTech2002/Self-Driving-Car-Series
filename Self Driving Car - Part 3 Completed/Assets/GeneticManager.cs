@@ -6,6 +6,7 @@ using System.Linq;
 using System;
 using System.Reflection;
 using Random = UnityEngine.Random;
+using UnityEngine.PlayerLoop;
 
 public class GeneticManager : MonoBehaviour
 {
@@ -37,6 +38,7 @@ public class GeneticManager : MonoBehaviour
     public GameObject[] population;
     public int currentGeneration;
     public int collisedCars = 0;
+    public float currentGenerationTime = 0f;
 
     private void Awake()
     {
@@ -46,7 +48,12 @@ public class GeneticManager : MonoBehaviour
     private void LateUpdate()
     {
         UpdateRanking();
-        UpdateCameraTarget();
+        UpdateCanvasStatus();
+    }
+
+    private void FixedUpdate()
+    {
+        currentGenerationTime += Time.deltaTime;
     }
 
     private void Start()
@@ -86,24 +93,40 @@ public class GeneticManager : MonoBehaviour
         SortPopulation();
     }
 
-    private void UpdateCameraTarget()
+    public Tuple<GameObject, float> StatsForCamera()
     {
         GameObject bestCarAlive = GetBestCarAlive();
-        CarController controller = GetController(bestCarAlive);
-        TargetCamera camera = GetCamera();
-        if(controller.overallFitness > 1){
+        if(bestCarAlive != null)
+        {
             foreach (Transform child in bestCarAlive.transform)
             {
                 if (child.tag == "CameraTarget")
                 {
                     GameObject bestTarget = child.gameObject;
-                    camera.UpdateTarget(bestTarget);
+                    return new Tuple<GameObject, float>(bestTarget, currentGenerationTime);
                 }
             }
         }
-        else {
-            camera.Reset();
-        }
+        return new Tuple<GameObject, float>(null, currentGenerationTime);
+    }
+
+    // private void UpdateCameraTarget()
+    // {
+
+    //     TargetCamera camera = GetCamera();
+    //     if(currentGenerationTime >= 3 )
+    //     {
+
+    //     }
+    //     camera.Reset();
+    // }
+
+    private void UpdateCanvasStatus()
+    {
+        Group group = GameObject.FindObjectOfType<Group>();
+        GameObject bestCarAlive = GetBestCarAlive();
+        CarController controller = GetController(bestCarAlive);
+        group.UpdateStatus(controller, initialPopulation - collisedCars);
     }
 
     private GameObject GetBestCarAlive()
@@ -118,7 +141,7 @@ public class GeneticManager : MonoBehaviour
             }
             position++;
         }
-        return population[0];
+        return null;
         
     }
 
@@ -140,9 +163,10 @@ public class GeneticManager : MonoBehaviour
         FillPopulationWithRandomValues(newPopulation, naturallySelected);
 
         population = newPopulation;
-        collisedCars = 0;
         ClearLog();
         StartPopulation();
+        collisedCars = 0;
+        currentGenerationTime = 0;
     }
 
     private GameObject[] PickBestPopulation()
