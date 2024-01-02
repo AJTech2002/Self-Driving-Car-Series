@@ -9,7 +9,7 @@ using Random = UnityEngine.Random;
 
 public class NNet : MonoBehaviour
 {
-    public Matrix<float> inputLayer = Matrix<float>.Build.Dense(1, 3);
+    public Matrix<float> inputLayer = Matrix<float>.Build.Dense(1, 12);
 
     public List<Matrix<float>> hiddenLayers = new List<Matrix<float>>();
 
@@ -42,7 +42,7 @@ public class NNet : MonoBehaviour
             //WEIGHTS
             if (i == 0)
             {
-                Matrix<float> inputToH1 = Matrix<float>.Build.Dense(3, hiddenNeuronCount);
+                Matrix<float> inputToH1 = Matrix<float>.Build.Dense(12, hiddenNeuronCount);
                 weights.Add(inputToH1);
             }
 
@@ -128,11 +128,12 @@ public class NNet : MonoBehaviour
 
     }
 
-    public (float, float) RunNetwork (float a, float b, float c)
+    public (float, float) RunNetwork (float[] sensors)
     {
-        inputLayer[0, 0] = a;
-        inputLayer[0, 1] = b;
-        inputLayer[0, 2] = c;
+        for(int i = 0; i < sensors.Length; i++)
+        {
+            inputLayer[0,i] = sensors[i];
+        }
 
         inputLayer = inputLayer.PointwiseTanh();
 

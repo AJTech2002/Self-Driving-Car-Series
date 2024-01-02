@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(NNet))]
@@ -32,7 +33,7 @@ public class CarController : MonoBehaviour
     private float totalDistanceTravelled;
     private float avgSpeed;
 
-    public float aSensor,bSensor,cSensor;
+    private float[] sensors = new float[12];
 
     private void Awake() {
         manager = GameObject.FindObjectOfType<GeneticManager>();
@@ -58,7 +59,7 @@ public class CarController : MonoBehaviour
             lastPosition = transform.position;
 
 
-            (a, t) = network.RunNetwork(aSensor, bSensor, cSensor);
+            (a, t) = network.RunNetwork(sensors);
 
 
             MoveCar(a,t);
@@ -96,7 +97,7 @@ public class CarController : MonoBehaviour
         totalDistanceTravelled += Vector3.Distance(transform.position,lastPosition);
         avgSpeed = totalDistanceTravelled/timeSinceStart;
 
-        overallFitness = (totalDistanceTravelled*distanceMultipler)+(avgSpeed*avgSpeedMultiplier)+(((aSensor+bSensor+cSensor)/3)*sensorMultiplier);
+        overallFitness = (totalDistanceTravelled*distanceMultipler)+(avgSpeed*avgSpeedMultiplier)+((sensors.Sum()/12)*sensorMultiplier);
 
         if (timeSinceStart > 20 && overallFitness < 40) {
             Death();
@@ -110,35 +111,24 @@ public class CarController : MonoBehaviour
 
     private void InputSensors() {
 
-        Vector3 a = (transform.forward+transform.right);
-        Vector3 b = (transform.forward);
-        Vector3 c = (transform.forward-transform.right);
-
-        Ray r = new Ray(transform.position,a);
-        RaycastHit hit;
-
+        int numRays = 12;
         int LAYER_MASK = ~(1 << 3);
         LAYER_MASK &= ~(1 << 6);
+        float angleStep = 180f / numRays;
+        for (int i = 0; i < numRays; i++)
+        {
+            float angle = i * angleStep;
 
-        float TOTAL_VIEW = Mathf.Infinity;
+            Vector3 direction = Quaternion.Euler(0, angle, 0) * (transform.right * -1);
 
-        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
-            aSensor = hit.distance/20;
-            Debug.DrawLine(r.origin, hit.point, Color.red);
-        }
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, direction, out hit, Mathf.Infinity, LAYER_MASK))
+            {
+                float sensor = hit.distance/20;
+                sensors[i] = sensor;
+                Debug.DrawRay(transform.position, direction*hit.distance, Color.red);
+            }
 
-        r.direction = b;
-
-        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
-            bSensor = hit.distance/20;
-            Debug.DrawLine(r.origin, hit.point, Color.red);
-        }
-
-        r.direction = c;
-
-        if (Physics.Raycast(r, out hit, TOTAL_VIEW, LAYER_MASK)) {
-            cSensor = hit.distance/20;
-            Debug.DrawLine(r.origin, hit.point, Color.red);
         }
 
     }

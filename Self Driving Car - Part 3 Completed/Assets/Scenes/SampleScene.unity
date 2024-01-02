@@ -1122,11 +1122,11 @@ MonoBehaviour:
   spawnPoint: {fileID: 1649993010}
   LAYERS: 4
   NEURONS: 20
-  initialPopulation: 1000
-  mutationRate: 0.09
-  bestAgentSelection: 8
-  worstAgentSelection: 3
-  numberToCrossover: 200
+  initialPopulation: 100
+  mutationRate: 0.055
+  bestAgentSelection: 4
+  worstAgentSelection: 0
+  numberToCrossover: 96
   population: []
   currentGeneration: 0
   collisedCars: 0
